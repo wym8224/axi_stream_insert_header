@@ -109,5 +109,5 @@ initial begin
         $finish;
     end
 end
-    always #5 clk =~ clk;
+always #5 clk =~ clk;
 endmodule

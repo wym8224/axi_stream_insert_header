@@ -32,12 +32,8 @@ reg valid_out_reg;
 reg [DATA_WD-1 : 0] data_out_reg;
 reg [DATA_BYTE_WD-1 : 0] keep_out_reg;
 reg last_out_reg;
-reg insert_cnt_invalid;
-integer i;
 
 always @(posedge clk or negedge rst_n) begin
-    insert_cnt_invalid = DATA_WD-byte_insert_cnt*8;
-    i = 0;
     first_cycle = 1;
     if (~rst_n) begin
         shift_reg <= '0;
@@ -47,30 +43,18 @@ always @(posedge clk or negedge rst_n) begin
         keep_out_reg <= '0;
         last_out_reg <= '0;
         first_cycle <= 1'b1;
-        i <= 0;
     end else begin
         if (valid_insert && valid_in && ready_out && first_cycle) begin
             first_cycle <= 1'b0;
             valid_out_reg <= 1;
             // remove invalid bytes from the beginning of the insert header
-            while(insert_cnt_invalid>0) begin
-                shift_reg[DATA_WD-1-i] <= data_insert[DATA_WD-1-i];
-                shift_keep[DATA_BYTE_WD-1-i] <= keep_insert[DATA_BYTE_WD-1-i];
-                i <= i+1;
-                insert_cnt_invalid <= insert_cnt_invalid-1;
-            end
+            shift_reg[DATA_WD-1 : byte_insert_cnt*8] <= data_insert;
+            shift_keep[DATA_BYTE_WD-1 : BYTE_CNT_WD] <= keep_insert;
         end else if (valid_insert && valid_in && ready_out) begin
             // insert header for the first cycle
             valid_out_reg <= 1'b1;
-            while(i < byte_insert_cnt*8)begin
-                shift_reg[i] <= data_insert[i];
-                i <= i+1;
-            end
-            while(insert_cnt_invalid>0)begin
-                shift_reg[i] <= data_in[i];
-                i <= i+1;
-                insert_cnt_invalid <= insert_cnt_invalid-1;
-            end
+            shift_reg[byte_insert_cnt*8 - 1 : 0] <= data_insert[byte_insert_cnt*8 - 1 : 0];
+            shift_reg[DATA_WD-1 : byte_insert_cnt*8] <= data_in;
             shift_keep[BYTE_CNT_WD-1 : 0] <= keep_insert[BYTE_CNT_WD-1 : 0];
             shift_keep[DATA_BYTE_WD-1 : BYTE_CNT_WD+1] <= keep_in;
         end else if (valid_insert && valid_in) begin
